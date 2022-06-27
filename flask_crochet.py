@@ -16,6 +16,10 @@ Gunicorn usage:
 """
 import crochet
 
+from Spiders.Casaimedsoukra_scraper import Casaimedsoukra_scraper
+from Spiders.Immoland_scraper import Immoland_scraper as Immoland_scraper
+from Spiders.Affare_scraper import Affare_scraper as Affare_scraper
+
 crochet.setup()  # initialize crochet
 
 import json
@@ -23,9 +27,7 @@ import json
 from flask import Flask
 from scrapy.crawler import CrawlerRunner
 
-from quote_scraper import QuoteSpider
-from Spiders.Immoland_scraper import Immoland_scraper as Immoland_scraper
-from Spiders.Affare_scraper import Affare_scraper as Affare_scraper
+
 
 app = Flask('Scrape With Flask')
 crawl_runner = CrawlerRunner()  # requires the Twisted reactor to run
@@ -50,7 +52,7 @@ def crawl_for_quotes(scraper_name="a"):
     scraper_name = scraper_name.lower()
 
     # get the scraper name from route
-    if scraper_name not in ["immoland", "affare"]:
+    if scraper_name not in ["immoland", "affare","casaimedsoukra"]:
         return "Invalid Scraper Name"
 
     if not scrape_in_progress:
@@ -78,12 +80,12 @@ def get_results():
 @crochet.run_in_reactor
 def scrape_with_crochet(_list, scraper_name):
     # test for the scraper name
-
-
     if scraper_name == "immoland":
         eventual = crawl_runner.crawl(Immoland_scraper, quotes_list=_list)
     if scraper_name == "affare":
         eventual = crawl_runner.crawl(Affare_scraper, quotes_list=_list)
+    if scraper_name == "casaimedsoukra":
+        eventual = crawl_runner.crawl(Casaimedsoukra_scraper, quotes_list=_list)
     eventual.addCallback(finished_scrape)
 
 

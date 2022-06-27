@@ -4,25 +4,18 @@ import re
 from Model.RealestateScraperItem import RealestateScraperItem
 
 
-class Affare_scraper(scrapy.Spider):
+class Casaimedsoukra_scraper(scrapy.Spider):
     name = 'quote'
-    start_urls = ['https://www.affare.tn/petites-annonces/tunisie/vente-appartement',
-                  'https://www.affare.tn/petites-annonces/tunisie/vente-maison',
-                  'https://www.affare.tn/petites-annonces/tunisie/terrain'
+    start_urls = ['https://casaimedsoukra.com/vente/appartement',
+                  'https://casaimedsoukra.com/vente/villa',
+                  'https://casaimedsoukra.com/vente/terrain',
+                  'https://casaimedsoukra.com/vente/commerciale',
+                  'https://casaimedsoukra.com/vente/bureau'
                   ]
-
-    for i in range(1, 250):
-        start_urls.append('https://www.affare.tn/petites-annonces/tunisie/vente-appartement?o=' + str(i))
-
-    for i in range(1, 363):
-        start_urls.append('https://www.affare.tn/petites-annonces/tunisie/vente-maison?o=' + str(i))
-
-    for i in range(1, 376):
-        start_urls.append('https://www.affare.tn/petites-annonces/tunisie/terrain?o=' + str(i))
     quotation_mark_pattern = re.compile(r'“|”')
 
     def parse(self, response):
-        list = response.css("div.col-xs-12.col-sm-8 div div:nth-child(3) div.AnnoncesList_product_x__BzrCL   ")
+        list = response.css('div.col-xs-12.col.isoCol.sale')
         for resource in list:
             item = RealestateScraperItem()
 
@@ -59,21 +52,31 @@ class Affare_scraper(scrapy.Spider):
             item['anneeConst'] = None
 
 
+            item['link'] = resource.css('h2.fontNeuron.text-capitalize a::attr(href)').get()
+            item['title'] = resource.css('h2.fontNeuron.text-capitalize a::text').get()
+            item['adresse'] = resource.css("p.couper-mot::text").get()
+            item['price'] = resource.css("span.textSecondary::text").get()
+            item['reference'] = resource.css("span.btn.btnSmall.btn-info.text-capitalize::text").get()
+
+            if resource.css("footer.postColumnFoot  ul.list-unstyled li:nth-child(2) strong:nth-child(2)::text").get() is not None:
+                item['nbpiece'] = resource.css("footer.postColumnFoot  ul.list-unstyled li:nth-child(2) strong:nth-child(2)::text").get()
+            else:
+                item['nbpiece'] = None
+
+            if resource.css("footer.postColumnFoot  ul.list-unstyled li:nth-child(1) strong:nth-child(2)::text").get() is not None:
+                item['superficie_habitable'] = resource.css("footer.postColumnFoot  ul.list-unstyled li:nth-child(1) strong:nth-child(2)::text").get()
+            else:
+                item['superficie_habitable'] = None
+
+            if resource.css("div.imgHolder::attr(style)").get() is not None:
+                item['thumbnail_url'] = resource.css("div.imgHolder::attr(style)").get()
+            else:
+                item['thumbnail_url'] = None
 
 
 
-
-            item['description'] = resource.css("a div:nth-child(2) div::text").get()
-            item['price'] = resource.css("span.AnnoncesList_price__J_vIo::text").get()
-            item['adresse'] = resource.css("div.AnnoncesList_section7877o__bOPTn div:nth-child(3) p::text").get()
-            item['nbpiece'] = resource.css("div.AnnoncesList_section7877o__bOPTn div:nth-child(3) p:nth-child(2) span::text").get()
-            item['superficie_habitable'] = resource.css("div.AnnoncesList_section7877o__bOPTn div:nth-child(3) p:nth-child(2) span:nth-child(2)::text").get()
-            item['dateAnnonce'] = resource.css("div.AnnoncesList_section7877o__bOPTn div:nth-child(3) p:nth-child(3)::text").get()
-            item['link'] = resource.css("a::attr(href)").get()
-
-
-        self.quotes_list.append({
-            'typeImm': item['typeImm'],
+            self.quotes_list.append({
+                 'typeImm': item['typeImm'],
             'gouvernorat': item['gouvernorat'],
             'delegation': item['delegation'],
             'localite': item['localite'],
@@ -104,7 +107,7 @@ class Affare_scraper(scrapy.Spider):
             'cuisine': item['cuisine'],
             'price': item['price'],
             'anneeConst': item['anneeConst']
-        })
-        next_page = response.css("ul.pagination-lg.pagination li:last-child a::attr(href)").get()
+            })
+        next_page = response.css("li.next.page-numbers a::attr(href)").get()
         if next_page is not None:
             yield response.follow(next_page, callback=self.parse)
